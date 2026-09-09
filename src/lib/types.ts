@@ -44,6 +44,22 @@ export interface PatternSpec {
   scale: Localized;
 }
 
+/**
+ * A Spoonflower-style colourway: same design, different colour treatment.
+ * Each colourway has its own preview image + brand hex for the swatch dot.
+ */
+export interface Colorway {
+  id: ID;
+  name: Localized;
+  /** Swatch colour shown as a circle on cards */
+  hex: string;
+  /** Preview image for this colourway (pattern / wallpaper / fabric photo) */
+  image: string;
+  /** Optional extra gallery frames for this colourway */
+  gallery?: string[];
+  isDefault?: boolean;
+}
+
 export interface Pattern {
   id: ID;
   sku: string;
@@ -57,7 +73,13 @@ export interface Pattern {
   artistId: ID | null; // null → site-owned pattern
   price: { fa: number; en: number };
   specs: PatternSpec;
+  /** Accent colours inside the design (legacy / detail strip) */
   palette: string[];
+  /**
+   * Available colourways (Spoonflower-style). When present, cards show circular
+   * swatches and the main image switches with the selected colourway.
+   */
+  colorways?: Colorway[];
   tags: string[];
   featured: boolean;
   trending: boolean;

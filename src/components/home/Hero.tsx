@@ -233,7 +233,7 @@ export function Hero({ hero, patterns, stats }: Props) {
         {/* bottom rail */}
         <div className="anim-fade-up mt-8 hidden items-center justify-between border-t border-white/10 pt-5 text-caption text-white/55 md:flex" style={{ animationDelay: "760ms" }}>
           <div className="flex gap-6 uppercase tracking-[0.18em]">
-            <span>Pattern</span><span>Design</span><span>Creativity</span><span>Lifestyle</span>
+            <span>Wallpaper</span><span>Fabric</span><span>Curtain</span><span>Décor</span>
           </div>
           <a href="#discover" className="group inline-flex items-center gap-2 hover:text-white">
             {dict.nav.explore}

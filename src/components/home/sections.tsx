@@ -89,6 +89,62 @@ export function BestSellersSection({ patterns, products }: { patterns: PatternCa
 }
 
 /* ------------------------------------------------------------------ */
+/** Mixed “new arrivals” rail: wallpaper · fabric · curtain · décor (not pattern-only). */
+export function NewArrivalsSection({ patterns, products }: { patterns: PatternCardData[]; products: ProductCardData[] }) {
+  const { locale, dict } = useLocale();
+  const items: Array<{ key: string; kind: "pattern" | "product"; pattern?: PatternCardData; product?: ProductCardData }> = [];
+  // Interleave: product, pattern, product, pattern… so the rail is never pattern-only
+  const P = products.slice(0, 5);
+  const A = patterns.slice(0, 3);
+  const max = Math.max(P.length, A.length);
+  for (let i = 0; i < max; i++) {
+    if (P[i]) items.push({ key: P[i].id, kind: "product", product: P[i] });
+    if (A[i]) items.push({ key: A[i].id, kind: "pattern", pattern: A[i] });
+  }
+  if (!items.length) return null;
+  return (
+    <section id="new" className="container-x section-y">
+      <SectionHeader
+        eyebrow={dict.common.new}
+        title={dict.home.newTitle}
+        description={dict.home.newDesc}
+        href={href(locale, "/shop?sort=new")}
+        hrefLabel={dict.nav.viewAll}
+      />
+      <Reveal className="mt-10">
+        <Carousel>
+          {items.map((it) =>
+            it.kind === "product" && it.product ? (
+              <ProductCard key={it.key} product={it.product} />
+            ) : it.pattern ? (
+              <PatternCard key={it.key} pattern={it.pattern} />
+            ) : null,
+          )}
+        </Carousel>
+      </Reveal>
+      {/* category chips under the rail */}
+      <Reveal className="mt-8 flex flex-wrap gap-2">
+        {[
+          { label: locale === "fa" ? "کاغذدیواری" : "Wallpaper", path: "/shop?q=wallpaper" },
+          { label: locale === "fa" ? "طراحی پارچه" : "Fabric", path: "/shop?q=fabric" },
+          { label: locale === "fa" ? "پرده" : "Curtain", path: "/shop?q=curtain" },
+          { label: locale === "fa" ? "دکور" : "Décor", path: "/shop?q=decor" },
+          { label: locale === "fa" ? "الگو" : "Pattern", path: "/patterns?sort=new" },
+        ].map((c) => (
+          <Link
+            key={c.path}
+            href={href(locale, c.path)}
+            className="rounded-full border border-border px-4 py-2 text-sm text-foreground-secondary transition-colors hover:border-foreground hover:text-foreground"
+          >
+            {c.label}
+          </Link>
+        ))}
+      </Reveal>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 export function ArtistsSection({ artists }: { artists: ArtistCardData[] }) {
   const { locale, dict } = useLocale();
   return (

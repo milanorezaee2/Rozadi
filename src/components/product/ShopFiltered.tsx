@@ -2,13 +2,12 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { FilterBar } from "@/components/product/FilterBar";
+import { CatalogLayout, FilterSidebar, type FilterGroup, type FilterOption } from "@/components/product/FilterSidebar";
 import { ProductGrid } from "@/components/product/Grids";
 import { GridSkeleton } from "@/components/ui/States";
 import { filterProducts } from "@/lib/data/filters";
 import { enrichProduct } from "@/lib/data/enrich";
 import type { Locale } from "@/lib/i18n/types";
-import type { FilterOption } from "@/components/product/FilterBar";
 import type { SiteContent } from "@/lib/types";
 
 interface Props {
@@ -16,10 +15,11 @@ interface Props {
   locale: Locale;
   categories: FilterOption[];
   sorts: FilterOption[];
-  extra: { key: string; label: string; options: FilterOption[] }[];
+  extra: FilterGroup[];
+  title?: string;
 }
 
-function FilteredContent({ site, categories, sorts, extra }: Props) {
+function FilteredContent({ site, categories, sorts, extra, title }: Props) {
   const sp = useSearchParams();
 
   const spRecord: Record<string, string | undefined> = {};
@@ -31,17 +31,21 @@ function FilteredContent({ site, categories, sorts, extra }: Props) {
   const list = filterProducts(site.products, spRecord, catMap).map((p) => enrichProduct(site, p));
 
   return (
-    <>
-      <FilterBar
-        total={list.length}
-        categories={categories}
-        sorts={sorts}
-        extra={extra}
-      />
-      <div className="mt-8">
+    <CatalogLayout
+      sidebar={
+        <FilterSidebar
+          total={list.length}
+          categories={categories}
+          sorts={sorts}
+          extra={extra}
+          title={title}
+        />
+      }
+    >
+      <div className="mt-2 lg:mt-0">
         <ProductGrid products={list} />
       </div>
-    </>
+    </CatalogLayout>
   );
 }
 

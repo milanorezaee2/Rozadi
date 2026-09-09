@@ -13,11 +13,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "@/components/providers/AppProviders";
 import { Badge, Sku } from "@/components/ui/Badge";
 import { ColorSwatches } from "@/components/product/ColorSwatches";
+import { ColorwayDots, resolveColorways } from "@/components/product/ColorwayDots";
 import { AddToCartButton } from "@/components/product/Actions";
 import { useProductColor } from "@/components/cards/ProductCard";
 import { cn, formatPrice, href, t } from "@/lib/utils";
@@ -362,6 +363,11 @@ function PatternPanel({
   imageRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const url = href(locale, `/patterns/${p.slug}`);
+  const colorways = useMemo(() => resolveColorways(p), [p]);
+  const defaultCw = colorways.find((c) => c.isDefault) ?? colorways[0];
+  const [cwId, setCwId] = useState(defaultCw?.id ?? "default");
+  const activeCw = colorways.find((c) => c.id === cwId) ?? defaultCw;
+  const image = activeCw?.image || p.image;
 
   return (
     <>
@@ -372,7 +378,8 @@ function PatternPanel({
           style={{ willChange: "transform" }}
         >
           <Image
-            src={p.image}
+            key={image}
+            src={image}
             alt={t(p.title, locale)}
             fill
             sizes={`${PANEL_W + 72}px`}
@@ -381,7 +388,6 @@ function PatternPanel({
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-surface/90 via-surface/10 to-transparent" />
-        {/* subtle "click to view" hint on hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 bg-foreground/10">
           <span className="flex items-center gap-1.5 rounded-full bg-surface/90 px-3 py-1.5 text-caption font-medium text-foreground shadow-md backdrop-blur-sm">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -389,15 +395,32 @@ function PatternPanel({
           </span>
         </div>
 
-        {/* palette */}
-        {p.palette.length > 0 && (
+        {/* colourway mini-previews like Spoonflower */}
+        {colorways.length > 1 && (
           <div
-            className="absolute bottom-3 inset-inline-end-3 flex gap-1.5"
+            className="absolute bottom-3 inset-inline-start-3 flex gap-1.5"
             style={{ animation: "ra-hc-stagger 380ms 280ms var(--ease-out) both" }}
+            onClick={(e) => e.preventDefault()}
           >
-            {p.palette.slice(0, 7).map((c) => (
-              <span key={c} className="h-4 w-4 rounded-full ring-1 ring-white/50 shadow-sm" style={{ background: c }} />
+            {colorways.slice(0, 5).map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCwId(c.id); }}
+                title={t(c.name, locale)}
+                className={cn(
+                  "relative h-9 w-9 overflow-hidden rounded-md ring-offset-1 ring-offset-surface transition-all duration-200 hover:scale-110",
+                  c.id === activeCw?.id ? "ring-2 ring-white scale-110 shadow-md" : "ring-1 ring-white/40 hover:ring-white/80",
+                )}
+              >
+                <Image src={c.image} alt={t(c.name, locale)} fill sizes="36px" className="object-cover" />
+              </button>
             ))}
+            {colorways.length > 5 && (
+              <span className="flex h-9 items-center rounded-md bg-black/40 px-1.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                +{colorways.length - 5}
+              </span>
+            )}
           </div>
         )}
 
@@ -434,17 +457,35 @@ function PatternPanel({
 
         <p className="mt-2.5 line-clamp-2 text-body-sm text-foreground-secondary">{t(p.description, locale)}</p>
 
+        {/* colourway dots */}
+        {colorways.length > 0 && (
+          <div className="mt-3.5 flex items-center gap-2.5">
+            <ColorwayDots colorways={colorways} value={activeCw?.id} onChange={setCwId} size="md" max={6} locale={locale} />
+            <span className="text-caption text-foreground-secondary">{activeCw ? t(activeCw.name, locale) : ""}</span>
+          </div>
+        )}
+
         <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-background-secondary px-3 py-2.5 text-sm">
           <div><dt className="text-caption text-muted">{dict.common.repeat}</dt><dd className="mt-0.5 font-medium text-foreground">{t(p.specs.repeat, locale)}</dd></div>
           <div><dt className="text-caption text-muted">{dict.common.dpi}</dt><dd className="mt-0.5 font-medium text-foreground">{p.specs.dpi}</dd></div>
           <div><dt className="text-caption text-muted">{dict.common.formats}</dt><dd className="mt-0.5 font-medium text-foreground">{p.specs.formats}</dd></div>
-          <div><dt className="text-caption text-muted">{dict.common.colors}</dt><dd className="mt-0.5 font-medium text-foreground">{p.specs.colors}</dd></div>
+          <div><dt className="text-caption text-muted">{locale === "fa" ? "رنگ‌بندی" : "Colourways"}</dt><dd className="mt-0.5 font-medium text-foreground">{colorways.length || p.specs.colors}</dd></div>
         </dl>
 
         <div className="mt-4 flex items-center gap-2.5">
           <AddToCartButton
             className="h-10 flex-1 text-sm"
-            line={{ kind: "pattern", id: p.id, sku: p.sku, title: t(p.title, locale), image: p.image, price: p.price, href: url }}
+            line={{
+              kind: "pattern",
+              id: p.id,
+              sku: p.sku,
+              title: `${t(p.title, locale)}${activeCw ? ` — ${t(activeCw.name, locale)}` : ""}`,
+              image,
+              price: p.price,
+              href: url,
+              colorName: activeCw ? t(activeCw.name, locale) : undefined,
+              colorHex: activeCw?.hex,
+            }}
           />
           <Link href={url} className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:border-foreground hover:bg-surface">
             <ArrowUpRight className="h-4 w-4 rtl-flip" />

@@ -22,12 +22,18 @@ export function ArtistCard({ artist, variant = "default", className }: { artist:
 
   return (
     <SpotlightCard as="article" className={cn("group relative flex flex-col overflow-hidden rounded-xl border border-border bg-surface transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-medium", className)}>
-      {/* featured pattern / portfolio strip */}
+      {/* cover / featured pattern strip */}
       <Link href={url} className={cn("relative block overflow-hidden bg-background-secondary", variant === "large" ? "aspect-[16/9]" : "aspect-[16/10]")}>
-        {artist.featuredPattern && <Image src={artist.featuredPattern.image} alt="" fill sizes="(max-width:768px) 100vw, 33vw" className="img-zoom object-cover" />}
+        <Image
+          src={artist.cover || artist.featuredPattern?.image || artist.avatar}
+          alt=""
+          fill
+          sizes="(max-width:768px) 100vw, 33vw"
+          className="img-zoom object-cover"
+        />
         <div className="absolute inset-0 vignette opacity-70" />
         <div className="absolute bottom-3 inset-inline-start-3 flex gap-1.5">
-          {artist.portfolioPreview.slice(0, 3).map((src) => (
+          {(artist.portfolioPreview.length ? artist.portfolioPreview : [artist.featuredPattern?.image].filter(Boolean) as string[]).slice(0, 3).map((src) => (
             <span key={src} className="relative h-10 w-10 overflow-hidden rounded-sm ring-1 ring-white/50 sm:h-12 sm:w-12">
               <Image src={src} alt="" fill sizes="48px" className="object-cover" />
             </span>
@@ -36,8 +42,8 @@ export function ArtistCard({ artist, variant = "default", className }: { artist:
       </Link>
       <div className="relative flex flex-1 flex-col px-5 pb-5">
         <div className="-mt-8 flex items-end justify-between gap-3">
-          <Link href={url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-4 border-surface bg-surface shadow-soft">
-            <Image src={artist.avatar} alt={t(artist.name, locale)} fill sizes="64px" className="object-cover" />
+          <Link href={url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-4 border-surface bg-surface shadow-soft ring-1 ring-black/5">
+            <Image src={artist.avatar} alt={t(artist.name, locale)} fill sizes="64px" className="object-cover object-top" />
           </Link>
           <button
             type="button"
