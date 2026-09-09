@@ -73,14 +73,31 @@ export default async function ShopPage({ params }: { params: Promise<{ locale: L
         <ShopFiltered
           site={site}
           locale={locale}
-          categories={usedCats.map((c) => ({ id: c.slug, label: t(c.name, locale) }))}
+          title={locale === "fa" ? "فروشگاه سطح و دکور" : "Surface & décor shop"}
+          categories={usedCats
+            .slice()
+            .sort((a, b) => a.order - b.order)
+            .map((c) => ({
+              id: c.slug,
+              label: t(c.name, locale),
+              count: site.products.filter((p) => p.categoryId === c.id).length,
+            }))}
           sorts={[
             { id: "new", label: d.common.new },
             { id: "best", label: d.common.bestSeller },
             { id: "price-asc", label: locale === "fa" ? "ارزان‌ترین" : "Price: low to high" },
             { id: "price-desc", label: locale === "fa" ? "گران‌ترین" : "Price: high to low" },
           ]}
-          extra={[{ key: "owner", label: d.common.creator, options: [{ id: "site", label: d.brand }, { id: "artist", label: d.nav.artists }] }]}
+          extra={[
+            {
+              key: "owner",
+              label: d.common.creator,
+              options: [
+                { id: "site", label: d.brand, count: site.products.filter((p) => !p.artistId).length },
+                { id: "artist", label: d.nav.artists, count: site.products.filter((p) => !!p.artistId).length },
+              ],
+            },
+          ]}
         />
       </div>
     </>

@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ErrorState, EmptyState } from "@/components/ui/States";
 import { SESSION_FETCH } from "@/lib/http";
 import { href, formatPrice } from "@/lib/utils";
-import type { Pattern, Product } from "@/lib/types";
+import type { Colorway, Pattern, Product } from "@/lib/types";
 
 type Tab = "patterns" | "products" | "stats";
 
@@ -223,6 +223,23 @@ function ItemGrid({
             <div className="p-3">
               <p className="truncate text-sm font-medium">{title}</p>
               <p className="mt-0.5 text-caption text-foreground-secondary" dir="ltr">{item.sku}</p>
+              {(() => {
+                const dots =
+                  type === "pattern" && "colorways" in item && item.colorways?.length
+                    ? item.colorways
+                    : type === "product" && "colors" in item && item.colors?.length
+                      ? item.colors.map((c) => ({ id: c.id, name: c.name, hex: c.hex, image: c.image }))
+                      : [];
+                if (!dots.length) return null;
+                return (
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {dots.slice(0, 6).map((d) => (
+                      <span key={d.id} className="h-3.5 w-3.5 rounded-full ring-1 ring-black/10" style={{ background: d.hex }} title={typeof d.name === "object" ? d.name.en : ""} />
+                    ))}
+                    {dots.length > 6 && <span className="text-[10px] text-muted">+{dots.length - 6}</span>}
+                  </div>
+                );
+              })()}
               <p className="mt-1 text-sm font-semibold tabular">
                 {formatPrice(item.price, locale as "fa" | "en")}
               </p>
@@ -289,6 +306,93 @@ function StatsPanel({ data, fa, locale }: { data: ArtistData | null; fa: boolean
   );
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Colourway editor (Spoonflower-style multi-colour upload)            */
+/* ------------------------------------------------------------------ */
+function ColorwayEditor({
+  fa,
+  initial,
+}: {
+  fa: boolean;
+  initial?: Colorway[] | { id: string; name: { fa: string; en: string }; hex: string; image: string; stock?: number }[];
+}) {
+  type Row = { nameFa: string; nameEn: string; hex: string; image: string; stock: string };
+  const seed: Row[] =
+    initial && initial.length
+      ? initial.map((c) => ({
+          nameFa: c.name?.fa ?? "",
+          nameEn: c.name?.en ?? "",
+          hex: c.hex ?? "#888888",
+          image: ("image" in c ? c.image : "") || "",
+          stock: String(("stock" in c ? (c as { stock?: number }).stock : 12) ?? 12),
+        }))
+      : [{ nameFa: fa ? "اصلی" : "Default", nameEn: "Default", hex: "#8fa08e", image: "", stock: "12" }];
+
+  const [rows, setRows] = useState<Row[]>(seed);
+
+  const update = (i: number, patch: Partial<Row>) =>
+    setRows((r) => r.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
+
+  const add = () =>
+    setRows((r) => [...r, { nameFa: "", nameEn: "", hex: "#c99a92", image: "", stock: "12" }]);
+
+  const remove = (i: number) => setRows((r) => (r.length <= 1 ? r : r.filter((_, idx) => idx !== i)));
+
+  return (
+    <div className="rounded-lg border border-border bg-background-secondary/40 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold">{fa ? "رنگ‌بندی‌ها (Colorways)" : "Colourways"}</p>
+          <p className="mt-0.5 text-caption text-foreground-secondary">
+            {fa
+              ? "مثل Spoonflower: هر رنگ یک پیش‌نمایش جدا دارد و روی کارت به‌صورت دایره نمایش داده می‌شود."
+              : "Spoonflower-style: each colour has its own preview and shows as a circle on cards."}
+          </p>
+        </div>
+        <button type="button" onClick={add} className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-caption font-medium hover:border-foreground">
+          <Plus className="h-3.5 w-3.5" />
+          {fa ? "افزودن رنگ" : "Add colour"}
+        </button>
+      </div>
+      <input type="hidden" name="colorway_count" value={rows.length} />
+      <ul className="mt-4 space-y-3">
+        {rows.map((row, i) => (
+          <li key={i} className="rounded-md border border-border bg-surface p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="h-6 w-6 rounded-full ring-1 ring-border" style={{ background: row.hex || "#ccc" }} />
+                <span className="text-caption text-muted">{fa ? `رنگ ${i + 1}` : `Colour ${i + 1}`}{i === 0 ? (fa ? " · پیش‌فرض" : " · default") : ""}</span>
+              </div>
+              {rows.length > 1 && (
+                <button type="button" onClick={() => remove(i)} className="text-caption text-error hover:underline">
+                  {fa ? "حذف" : "Remove"}
+                </button>
+              )}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input name={`cw_name_fa_${i}`} dir="rtl" placeholder={fa ? "نام فارسی" : "Name (fa)"} value={row.nameFa} onChange={(e) => update(i, { nameFa: e.target.value })} />
+              <Input name={`cw_name_en_${i}`} dir="ltr" placeholder="Name (en)" value={row.nameEn} onChange={(e) => update(i, { nameEn: e.target.value })} />
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  aria-label="hex"
+                  value={/^#[0-9a-fA-F]{6}$/.test(row.hex) ? row.hex : "#888888"}
+                  onChange={(e) => update(i, { hex: e.target.value })}
+                  className="h-10 w-12 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                />
+                <Input name={`cw_hex_${i}`} dir="ltr" placeholder="#8fa08e" value={row.hex} onChange={(e) => update(i, { hex: e.target.value })} className="flex-1" />
+              </div>
+              <Input name={`cw_image_${i}`} dir="ltr" placeholder="/images/..." value={row.image} onChange={(e) => update(i, { image: e.target.value })} />
+              <Input name={`cw_stock_${i}`} type="number" min={0} dir="ltr" placeholder="Stock" value={row.stock} onChange={(e) => update(i, { stock: e.target.value })} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Form Panel (slide-in overlay)                                         */
 /* ------------------------------------------------------------------ */
@@ -320,6 +424,26 @@ function FormPanel({
     const priceFa = Number(fd.get("price_fa")) || 0;
     const priceEn = Number(fd.get("price_en")) || 0;
 
+    // Parse colourways from dynamic form rows (Spoonflower-style)
+    const colorways: Colorway[] = [];
+    if (!isProduct) {
+      const count = Number(fd.get("colorway_count") || 0);
+      for (let i = 0; i < count; i++) {
+        const hex = String(fd.get(`cw_hex_${i}`) || "").trim();
+        const img = String(fd.get(`cw_image_${i}`) || "").trim();
+        const nameFa = String(fd.get(`cw_name_fa_${i}`) || "").trim();
+        const nameEn = String(fd.get(`cw_name_en_${i}`) || "").trim();
+        if (!hex && !img) continue;
+        colorways.push({
+          id: `cw-${i}-${Date.now().toString(36)}`,
+          name: { fa: nameFa || `رنگ ${i + 1}`, en: nameEn || `Colour ${i + 1}` },
+          hex: hex || "#888888",
+          image: img || String(fd.get("image") || "/images/collections/s01.jpg"),
+          isDefault: i === 0,
+        });
+      }
+    }
+
     const payload: Record<string, unknown> = {
       _type: isProduct ? "product" : "pattern",
       ...(isEdit && initial ? { id: initial.id } : {}),
@@ -328,7 +452,39 @@ function FormPanel({
       price: { fa: priceFa, en: priceEn },
       slug: String(fd.get("slug") || "").toLowerCase().replace(/\s+/g, "-"),
       sku: String(fd.get("sku") || ""),
-      image: isProduct ? undefined : String(fd.get("image") || "/images/collections/s01.jpg"),
+      image: isProduct ? undefined : (colorways[0]?.image || String(fd.get("image") || "/images/collections/s01.jpg")),
+      ...( !isProduct ? {
+        colorways,
+        palette: colorways.map((c) => c.hex),
+        specs: {
+          repeat: { fa: String(fd.get("repeat_fa") || "تکرار کامل"), en: String(fd.get("repeat_en") || "Full repeat") },
+          dpi: String(fd.get("dpi") || "300 DPI"),
+          formats: String(fd.get("formats") || "AI · PDF · TIFF"),
+          colors: colorways.length || Number(fd.get("color_count") || 1),
+          scale: { fa: String(fd.get("scale_fa") || "متوسط"), en: String(fd.get("scale_en") || "Medium") },
+        },
+      } : {}),
+      ...( isProduct ? {
+        colors: (() => {
+          const count = Number(fd.get("colorway_count") || 0);
+          const cols = [];
+          for (let i = 0; i < count; i++) {
+            const hex = String(fd.get(`cw_hex_${i}`) || "").trim();
+            const img = String(fd.get(`cw_image_${i}`) || "").trim();
+            const nameFa = String(fd.get(`cw_name_fa_${i}`) || "").trim();
+            const nameEn = String(fd.get(`cw_name_en_${i}`) || "").trim();
+            if (!hex && !img) continue;
+            cols.push({
+              id: `col-${i}`,
+              name: { fa: nameFa || `رنگ ${i + 1}`, en: nameEn || `Colour ${i + 1}` },
+              hex: hex || "#888888",
+              image: img || "/images/collections/s01.jpg",
+              stock: Number(fd.get(`cw_stock_${i}`) || 12),
+            });
+          }
+          return cols;
+        })(),
+      } : {}),
     };
 
     try {
@@ -406,6 +562,21 @@ function FormPanel({
               <Textarea name="desc_en" rows={3} defaultValue={initial?.description?.en ?? ""} />
             </Field>
           </div>
+
+          <ColorwayEditor
+            fa={fa}
+            initial={
+              isProduct
+                ? ((initial as Product | null)?.colors?.map((c) => ({
+                    id: c.id,
+                    name: c.name,
+                    hex: c.hex,
+                    image: c.image,
+                    stock: c.stock,
+                  })) as Colorway[] | undefined)
+                : ((initial as Pattern | null)?.colorways ?? undefined)
+            }
+          />
 
           {err && <p className="text-sm text-error">{err}</p>}
 

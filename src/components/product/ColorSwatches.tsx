@@ -17,6 +17,8 @@ export function ColorSwatches({
   size = "md",
   className,
   label,
+  max = 6,
+  showCount = true,
 }: {
   options: SwatchOption[];
   value: string;
@@ -24,11 +26,16 @@ export function ColorSwatches({
   size?: "sm" | "md" | "lg";
   className?: string;
   label?: string;
+  /** Max dots shown before +N (Spoonflower-style). */
+  max?: number;
+  showCount?: boolean;
 }) {
   const dim = size === "sm" ? "h-5 w-5" : size === "lg" ? "h-9 w-9" : "h-7 w-7";
+  const shown = options.slice(0, max);
+  const extra = options.length - shown.length;
   return (
-    <div role="radiogroup" aria-label={label} className={cn("flex items-center gap-2", className)}>
-      {options.map((o) => {
+    <div role="radiogroup" aria-label={label} className={cn("flex items-center gap-1.5", className)}>
+      {shown.map((o) => {
         const active = o.id === value;
         const out = o.stock <= 0;
         const light = isLight(o.hex);
@@ -58,6 +65,9 @@ export function ColorSwatches({
           </button>
         );
       })}
+      {showCount && extra > 0 && (
+        <span className="ms-0.5 text-[11px] font-medium tabular text-foreground-secondary">+{extra}</span>
+      )}
     </div>
   );
 }

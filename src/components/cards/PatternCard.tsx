@@ -3,14 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Eye } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocale } from "@/components/providers/AppProviders";
 import { Badge, Sku } from "@/components/ui/Badge";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { AddToCartButton, FavoriteButton } from "@/components/product/Actions";
+import { ColorwayDots, resolveColorways } from "@/components/product/ColorwayDots";
 import { useHoverCard } from "@/components/ui/HoverCard";
 import { cn, formatPrice, href, t } from "@/lib/utils";
-import type { Artist, Category, Pattern } from "@/lib/types";
+import type { Artist, Category, Colorway, Pattern } from "@/lib/types";
 import { QuickView } from "@/components/product/QuickView";
 
 export interface PatternCardData extends Pattern {
@@ -23,9 +24,20 @@ type Variant = "default" | "large" | "wide" | "compact";
 export function PatternCard({ pattern, variant = "default", priority, className }: { pattern: PatternCardData; variant?: Variant; priority?: boolean; className?: string }) {
   const { locale, dict } = useLocale();
   const [quick, setQuick] = useState(false);
+  const colorways = useMemo(() => resolveColorways(pattern), [pattern]);
+  const defaultCw = colorways.find((c) => c.isDefault) ?? colorways[0];
+  const [cwId, setCwId] = useState(defaultCw?.id ?? "default");
+  const activeCw: Colorway = colorways.find((c) => c.id === cwId) ?? defaultCw ?? {
+    id: "default",
+    name: { fa: "اصلی", en: "Default" },
+    hex: "#888",
+    image: pattern.image,
+    isDefault: true,
+  };
   const { onMouseEnter, onMouseLeave, onClick, portal } = useHoverCard({ kind: "pattern", pattern });
   const url = href(locale, `/patterns/${pattern.slug}`);
   const ratio = variant === "large" ? "aspect-[4/5]" : variant === "wide" ? "aspect-[16/10]" : variant === "compact" ? "aspect-square" : "aspect-[4/5]";
+  const displayImage = activeCw.image || pattern.image;
 
   return (
     <>
@@ -33,12 +45,13 @@ export function PatternCard({ pattern, variant = "default", priority, className 
         <Link href={url} className="relative block overflow-hidden rounded-lg bg-background-secondary" aria-label={t(pattern.title, locale)}>
           <div className={cn("relative w-full", ratio)}>
             <Image
-              src={pattern.image}
-              alt={t(pattern.title, locale)}
+              key={displayImage}
+              src={displayImage}
+              alt={`${t(pattern.title, locale)} — ${t(activeCw.name, locale)}`}
               fill
               priority={priority}
               sizes={variant === "large" ? "(max-width:768px) 100vw, 50vw" : "(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"}
-              className="img-zoom object-cover"
+              className="img-zoom object-cover anim-scale-fade"
             />
           </div>
           {/* top row */}
@@ -66,16 +79,19 @@ export function PatternCard({ pattern, variant = "default", priority, className 
             </button>
             <AddToCartButton
               variant="icon"
-              line={{ kind: "pattern", id: pattern.id, sku: pattern.sku, title: t(pattern.title, locale), image: pattern.image, price: pattern.price, href: url }}
+              line={{
+                kind: "pattern",
+                id: pattern.id,
+                sku: pattern.sku,
+                title: `${t(pattern.title, locale)} — ${t(activeCw.name, locale)}`,
+                image: displayImage,
+                price: pattern.price,
+                href: url,
+                colorName: t(activeCw.name, locale),
+                colorHex: activeCw.hex,
+              }}
             />
           </div>
-          {variant !== "compact" && (
-            <div className="pointer-events-none absolute bottom-3 inset-inline-end-3 flex gap-1 opacity-100 transition-opacity duration-300 group-hover:opacity-0">
-              {pattern.palette.slice(0, 3).map((c) => (
-                <span key={c} className="h-3 w-3 rounded-full ring-1 ring-white/60" style={{ background: c }} />
-              ))}
-            </div>
-          )}
         </Link>
 
         <div className={cn("flex flex-col gap-1.5 pt-3.5", variant === "large" && "pt-5")}>
@@ -97,7 +113,25 @@ export function PatternCard({ pattern, variant = "default", priority, className 
             </div>
             <span className="shrink-0 text-sm font-semibold tabular text-foreground">{formatPrice(pattern.price, locale)}</span>
           </div>
-          <div className="flex items-center justify-between gap-2 pt-1">
+
+          {/* Spoonflower-style colourway dots */}
+          {colorways.length > 0 && (
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <ColorwayDots
+                colorways={colorways}
+                value={activeCw.id}
+                onChange={setCwId}
+                size={variant === "compact" ? "sm" : "md"}
+                max={variant === "compact" ? 4 : 6}
+                locale={locale}
+              />
+              <span className="truncate text-caption text-muted">
+                {t(activeCw.name, locale)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2 pt-0.5">
             <Sku value={pattern.sku} />
             {variant !== "compact" && (
               <span className="truncate text-caption text-muted" dir="auto">

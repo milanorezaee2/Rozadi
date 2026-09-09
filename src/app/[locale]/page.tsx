@@ -8,6 +8,7 @@ import {
   EducationSection,
   ExclusiveSection,
   NewsletterSection,
+  NewArrivalsSection,
   PatternRail,
   PortfoliosSection,
   SpacesSection,
@@ -54,7 +55,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
       {on("discovery") && <DiscoverySection patterns={patterns.filter((p) => p.featured)} categories={featuredCats} />}
       {on("trending") && <PatternRail id="trending" eyebrow={d.common.trending} title={d.home.trendingTitle} description={d.home.trendingDesc} patterns={patterns.filter((p) => p.trending)} hrefPath="/patterns?sort=trending" tone="secondary" />}
       {on("bestSellers") && <BestSellersSection patterns={patterns.filter((p) => p.bestSeller)} products={products.filter((p) => p.bestSeller)} />}
-      {on("newPatterns") && <PatternRail id="new" eyebrow={d.common.new} title={d.home.newTitle} description={d.home.newDesc} patterns={patterns.filter((p) => p.isNew)} hrefPath="/patterns?sort=new" />}
+      {on("newPatterns") && (
+        <NewArrivalsSection
+          patterns={patterns.filter((p) => p.isNew)}
+          products={products.filter((p) => p.isNew)}
+        />
+      )}
       {on("artists") && <ArtistsSection artists={artists} />}
       {on("portfolios") && <PortfoliosSection items={portfolios.filter((p) => p.featured)} eyebrow={d.nav.portfolio} title={d.home.portfolioTitle} description={d.home.portfolioDesc} hrefPath="/portfolio" />}
       {on("styles") && <StylesSection categories={featuredCats} counts={styleCounts} />}

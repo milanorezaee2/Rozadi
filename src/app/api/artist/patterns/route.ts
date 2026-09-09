@@ -83,14 +83,20 @@ export async function POST(req: Request) {
 
   // Create pattern
   const b = body as Record<string, unknown>;
+  const colorways = (b.colorways as Pattern["colorways"]) ?? [];
+  const defaultImage =
+    colorways.find((c) => c.isDefault)?.image ||
+    colorways[0]?.image ||
+    (b.image as string) ||
+    "/images/collections/s01.jpg";
   const pattern: Pattern = {
     id: `pat-${crypto.randomBytes(6).toString("hex")}`,
     sku: (b.sku as string) ?? `PAT-${Date.now().toString(36).toUpperCase()}`,
     slug: (b.slug as string) ?? `pattern-${Date.now().toString(36)}`,
     title: (b.title as Pattern["title"]) ?? { fa: "الگوی جدید", en: "New pattern" },
     description: (b.description as Pattern["description"]) ?? { fa: "", en: "" },
-    image: (b.image as string) ?? "/images/collections/s01.jpg",
-    gallery: (b.gallery as string[]) ?? [],
+    image: defaultImage,
+    gallery: (b.gallery as string[]) ?? (colorways.map((c) => c.image).filter(Boolean) as string[]),
     categoryId: (b.categoryId as string) ?? (content.categories[0]?.id ?? ""),
     spaceIds: (b.spaceIds as string[]) ?? [],
     artistId,
@@ -99,10 +105,11 @@ export async function POST(req: Request) {
       repeat: { fa: "تکرار کامل", en: "Full repeat" },
       dpi: "300",
       formats: "PNG, PDF",
-      colors: 4,
+      colors: colorways.length || 4,
       scale: { fa: "بزرگ", en: "Large" },
     },
-    palette: (b.palette as string[]) ?? [],
+    palette: (b.palette as string[]) ?? colorways.map((c) => c.hex),
+    colorways: colorways.length ? colorways : undefined,
     tags: (b.tags as string[]) ?? [],
     featured: false,
     trending: false,
