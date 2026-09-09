@@ -3,7 +3,7 @@
 Premium bilingual (فارسی RTL / English LTR) platform for **patterns · creators · portfolios · products · education**.
 
 Built with Next.js 15 (App Router), React 19, Tailwind v4 and a token-driven design system.
-Repository: `milanopardi13/artikel` · Production host: **Netlify** (SSR).
+Repository: [`milanorezaee2/Rozadi`](https://github.com/milanorezaee2/Rozadi) · Production host: **Netlify / Vercel** (SSR).
 
 ## Run
 
@@ -12,6 +12,32 @@ npm install
 npm run dev      # http://localhost:3000 → redirects to /fa (or /en)
 npm run check    # typecheck + lint
 npm run build && npm start
+```
+
+## Live / Deploy
+
+**GitHub repo:** https://github.com/milanorezaee2/Rozadi  
+
+### One-click deploy
+
+| Platform | Button |
+| --- | --- |
+| **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/milanorezaee2/Rozadi) |
+| **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/milanorezaee2/Rozadi) |
+
+After import, set environment variables (see `.env.example`):
+
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `AUTH_SECRET`
+- `NEXT_PUBLIC_SITE_URL` = your public URL (no trailing slash)
+- Optional: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` for persistent admin content
+
+Then open `https://<your-site>/api/health` — expect `"ok": true`.
+
+### Local production
+
+```bash
+npm ci && npm run build && npm start
+# → http://localhost:3000/fa
 ```
 
 ## Structure
